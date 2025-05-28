@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mannlich GmbH</title>
+<style>
+:root{--accent:#007bff}
+
+/* --- GLOBAL -------------------------------------------------- */
+body,html{margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f5f5f5;transition:background .4s}
+input,button{padding:.5em;font-size:1em;border-radius:6px;border:none}
+button{background:#fff;color:var(--accent);cursor:pointer;margin-top:.5em;transition:.3s}
+button:hover{transform:scale(1.07)}
+.fade{animation:fade .4s forwards}@keyframes fade{from{opacity:0}to{opacity:1}}
+
+/* --- OVERLAYS ------------------------------------------------ */
+#loader,#nameInputSection,#adminPinSection,
+#shopPage,#kioskPage,#cartPage{position:fixed;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center}
+#loader.active,#nameInputSection.active,#adminPinSection.active,
+#shopPage.active,#kioskPage.active,#cartPage.active,
+header.active,main.active{display:flex}
+#loader{background:linear-gradient(135deg,var(--accent),#00c6ff);color:#fff;z-index:1000}
+#nameInputSection,#adminPinSection{background:#fff;z-index:1001}
+#shopPage,#kioskPage,#cartPage{background:#fafafa;z-index:1100;overflow:hidden;flex-direction:column}
+
+/* --- HEADER -------------------------------------------------- */
+header{background:linear-gradient(270deg,var(--accent),#00c6ff);background-size:400% 400%;
+        animation:gradientShift 15s ease infinite;color:#fff;padding:1em;text-align:center;display:none;position:relative}
+@keyframes gradientShift{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+main{padding:2em;max-width:800px;margin:auto;gap:1.2em;display:none;flex-direction:column}
+.section{background:#fff;padding:1em;border-radius:15px;box-shadow:0 4px 12px rgba(0,0,0,.08);opacity:0;transform:translateY(30px);transition:.6s}
+.section.show{opacity:1;transform:scale(1.03)}
+.section:hover{box-shadow:0 6px 18px rgba(0,0,0,.17)}
+
+/* Karten-Gloss */
+.product-card::after{content:'';position:absolute;inset:0;border-radius:15px;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.28) 45%,transparent 60%);transform:translateX(-100%);transition:transform .8s}
+.product-card:hover::after{transform:translateX(100%)}
+
+/* --- LISTEN / GRIDS ----------------------------------------- */
+#shopHeader,#kioskHeader,#cartHeader{display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--accent);color:#fff;transition:background .3s}
+#shopHeader button,#kioskHeader button,#cartHeader button{background:transparent;color:#fff;font-size:1rem}
+#shopHeader input,#kioskHeader input{flex:1;padding:.5rem 1rem;border-radius:6px;border:none}
+#productGrid,#kioskGrid,#cartGrid{flex:1;overflow-y:auto;padding:2rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2rem;justify-items:center}
+
+.product-card{position:relative;background:#fff;border-radius:15px;box-shadow:0 4px 15px rgba(0,0,0,.1);transition:.3s;width:100%;max-width:300px;display:flex;flex-direction:column;opacity:0;transform:translateY(20px)}
+.product-card.show{opacity:1;transform:translateY(0)}
+.product-card:hover{transform:scale(1.05);box-shadow:0 10px 25px rgba(0,0,0,.2)}
+.product-card img{width:100%;height:180px;object-fit:cover;border-top-left-radius:15px;border-top-right-radius:15px}
+.product-info{padding:1rem;display:flex;flex-direction:column;gap:.5rem}
+.product-name{font-weight:700;font-size:1.1rem;text-align:center;min-height:2.2rem}
+.product-price{color:var(--accent);font-weight:700;text-align:center}
+.admin-actions,.buy-actions{display:flex;justify-content:center;gap:.35rem;margin-top:.6rem}
+.admin-actions button{background:#ff4444;color:#fff;font-size:.85rem}
+.buy-btn{background:#00c853;color:#fff;font-size:.9rem}
+.qty-btn{background:var(--accent);color:#fff;font-size:.8rem;width:28px}
+
+/* --- CART ICON & COLOR PICKER -------------------------------- */
+#cartBtn{position:absolute;right:6rem;top:.6rem;font-size:1.6rem;background:transparent;border:none;color:#fff;cursor:pointer}
+#cartCount{position:absolute;top:-6px;right:-10px;background:#ff5252;color:#fff;font-size:.7rem;border-radius:50%;width:18px;height:18px;display:flex;justify-content:center;align-items:center}
+#accentPicker{position:absolute;right:3.5rem;top:.6rem;width:26px;height:26px;border:none;padding:0;background:none;cursor:pointer}
+
+/* --- MISC ---------------------------------------------------- */
+#cartSummary{padding:1rem;font-weight:700;text-align:center;border-top:1px solid #ddd}
+#toTop{position:fixed;right:1rem;bottom:1rem;background:var(--accent);color:#fff;font-size:1.4rem;border:none;border-radius:50%;width:44px;height:44px;display:none;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,.3);cursor:pointer;transition:background .3s}
+
+/* --- DARK-MODE ---------------------------------------------- */
+body.dark{background:#121212;color:#e0e0e0}
+body.dark header,body.dark .section,
+body.dark #shopHeader,body.dark #kioskHeader,body.dark #cartHeader,
+body.dark #shopPage,body.dark #kioskPage,body.dark #cartPage{background:#1e1e1e;color:#e0e0e0}
+body.dark button{background:#333;color:#e0e0e0}
+body.dark button:hover{background:#555}
+
+/* Loader Typing + Pulse  (unverändert) */
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes typing{from{width:0}to{width:14ch}}@keyframes blink{0%,100%{border-color:transparent}50%{border-color:#fff}}
+#loader h1{animation:pulse 5s infinite}
+#loader h1.typing{overflow:hidden;white-space:nowrap;border-right:3px solid #fff;width:0;animation:typing 1.8s steps(15,end) forwards,blink .8s step-end infinite}
+
+/* --- CSS-NEU: Admin-Overlay -------------------------------- */
+#adminDashBtn{position:absolute;left:1rem;top:.6rem;font-size:1.4rem;background:none;border:none;color:#fff;cursor:pointer}
+#adminDashboardOverlay{
+  position:fixed;inset:0;display:none;z-index:1200;
+  background:rgba(0,0,0,.6);justify-content:center;align-items:center;
+}
+#adminDashboardOverlay .panel{
+  background:#fff;width:90%;max-width:500px;padding:2rem;border-radius:12px;box-shadow:0 8px 25px rgba(0,0,0,.25);text-align:center;
+}
+#adminDashboardOverlay .close-btn{position:absolute;right:1rem;top:.7rem;font-size:1.8rem;cursor:pointer;background:none;border:none}
+</style>
+</head>
+
+<body>
+<div id="loader"><h1 class="typing">Mannlich&nbsp;GmbH</h1><p>Wir starten für euch …</p></div>
+
+<!-- Login  -->
+<div id="nameInputSection" class="active fade">
+  <h1>Willkommen!</h1><p>Bitte gib deinen Namen ein:</p>
+  <input id="username" placeholder="Dein Name"><button onclick="enterSite()">Weiter</button>
+</div>
+<div id="adminPinSection" class="fade">
+  <h1>Admin-Zugang</h1><p>Bitte gib deinen Admin-PIN ein:</p>
+  <input id="adminPin" placeholder="PIN" type="password"><button onclick="verifyAdminPin()">PIN prüfen</button>
+</div>
+
+<!-- Header -->
+<header>
+  <h1>Mannlich&nbsp;GmbH</h1>
+  <button id="themeToggle" title="Dark / Light" style="position:absolute;right:1rem;top:.6rem">🌙/☀</button>
+  <input type="color" id="accentPicker" title="Hauptfarbe wählen" value="#007bff">
+  <button id="cartBtn" title="Warenkorb">🛒<span id="cartCount">0</span></button>
+<button id="adminDashBtn" title="Admin-Dashboard" style="display:none">⚙️</button>
+</header>
+
+<!-- Main -->
+<main>
+  <section class="section counter">
+    <h2>Spendenzähler – Aktion "Cent4Kids"</h2>
+    <p>Aktueller Stand: <strong id="donationAmount">0 €</strong></p>
+    <div id="donationBtns" style="display:none;gap:.6rem;flex-wrap:wrap">
+      <button id="plusBtn">+1 €</button><button id="minusBtn">-1 €</button>
+    </div>
+  </section>
+
+  <section class="section product">
+    <h2>Schulfirma&nbsp;Produkte</h2><button id="openShopBtn">🛒 Shop öffnen</button>
+  </section>
+
+  <section class="section kiosk">
+    <h2>Kiosk&nbsp;Produkte</h2><button id="openKioskBtn">🍫 Shop öffnen</button>
+  </section>
+
+  <section class="section news">
+    <h2>News</h2><div id="newsList"></div>
+    <div id="adminNewsInput" style="display:none;margin-top:1em">
+      <input id="newsInput" placeholder="Neue News schreiben"><button id="newsPostBtn">Posten</button>
+    </div>
+  </section>
+</main>
+
+<!-- Shop Overlay -->
+<div id="shopPage" class="fade">
+  <div id="shopHeader"><button id="closeShopBtn">← Zurück</button><input id="searchInput" placeholder="Produkte durchsuchen"></div>
+  <div id="productGrid"></div>
+  <div id="addProductForm">
+    <input id="productName" placeholder="Produktname"><input id="productPrice" type="number" placeholder="Preis (€)"><input id="productImage" type="file" accept="image/*"><button id="addProductBtn">Hinzufügen</button>
+  </div>
+</div>
+
+<!-- Kiosk Overlay -->
+<div id="kioskPage" class="fade">
+  <div id="kioskHeader"><button id="closeKioskBtn">← Zurück</button><input id="kioskSearchInput" placeholder="Produkte durchsuchen"></div>
+  <div id="kioskGrid"></div>
+  <div id="addKioskForm">
+    <input id="kioskName" placeholder="Produktname"><input id="kioskPrice" type="number" placeholder="Preis (€)"><input id="kioskImage" type="file" accept="image/*"><button id="addKioskBtn">Hinzufügen</button>
+  </div>
+</div>
+
+<!-- Cart Overlay -->
+<div id="cartPage" class="fade">
+  <div id="cartHeader"><button id="closeCartBtn">← Zurück</button><h3 style="margin:0">Mein&nbsp;Warenkorb</h3></div>
+  <div id="cartGrid"></div>
+  <div id="cartSummary"></div>
+</div>
+
+<button id="toTop">⬆</button>
+
+<!-- Cookie Banner -->
+<div id="cookieBanner"><span>Diese Website verwendet Cookies.</span><button id="cookieOkBtn">OK</button></div>
+
+<script>
+/* ---------- STORAGE / STATE ------------------------------- */
+let donationTotal = +localStorage.getItem('donationTotal')||0;
+let products      = JSON.parse(localStorage.getItem('products')      ||'[]');
+let kioskProducts = JSON.parse(localStorage.getItem('kioskProducts') ||'[]');
+let newsItems     = JSON.parse(localStorage.getItem('news')          ||'[]');
+let cartItems     = JSON.parse(localStorage.getItem('cart')          ||'[]');
+let accentColor   = localStorage.getItem('accent')||'#007bff';
+let isAdmin=false;
+const qs = s=>document.querySelector(s);
+
+/* ---------- ACCENT COLOR ---------------------------------- */
+function setAccent(c){
+  accentColor=c;
+  document.documentElement.style.setProperty('--accent',c);
+  const rgb=c.match(/\w\w/g).map(x=>parseInt(x,16));
+  document.documentElement.style.setProperty('--accent-rgb',`${rgb[0]},${rgb[1]},${rgb[2]}`);
+  localStorage.setItem('accent',c);
+  document.querySelectorAll('.product-price').forEach(el=>el.style.color=c);
+}
+setAccent(accentColor);
+qs('#accentPicker').value=accentColor;
+qs('#accentPicker').addEventListener('input',e=>setAccent(e.target.value));
+
+/* ---------- LOGIN ----------------------------------------- */
+function enterSite(){
+  const name=qs('#username').value.trim();
+  if(!name)return alert('Bitte gib deinen Namen ein');
+  name.toLowerCase().includes('admin')?(qs('#nameInputSection').classList.remove('active'),qs('#adminPinSection').classList.add('active'))
+                                        :startSite(false);
+}
+function verifyAdminPin(){qs('#adminPin').value.trim()==='35497'?startSite(true):alert('Falscher PIN!');}
+
+/* ---------- START SITE ------------------------------------ */
+function startSite(admin){
+  isAdmin=admin;
+  if (isAdmin) qs('#adminDashBtn').style.display = 'inline-block';
+  qs('#nameInputSection').classList.remove('active');
+  qs('#adminPinSection').classList.remove('active');
+  qs('#loader').classList.add('active');
+  setTimeout(()=>{
+    qs('#loader').classList.remove('active');
+    document.querySelector('header').classList.add('active');
+    document.querySelector('main').classList.add('active');
+    document.querySelectorAll('.section').forEach((sec,i)=>setTimeout(()=>sec.classList.add('show'),i*280));
+    if(isAdmin){
+      qs('#donationBtns').style.display='flex';
+      qs('#adminNewsInput').style.display='flex';
+      qs('#addProductForm').style.display='flex';
+      qs('#addKioskForm').style.display='flex';
+    }
+    syncDonation();renderNews();renderProducts();renderKioskProducts();renderCart();updateCart();
+  },2400);
+}
+// JS-NEU: Funktionen + Listener
+function openAdminDashboard(){
+  if(!isAdmin) return;
+  qs('#dashProducts').textContent = products.length;
+  qs('#dashKiosk').textContent   = kioskProducts.length;
+  qs('#dashCart').textContent    = cartItems.reduce((s,p)=>s+p.qty,0);
+  qs('#dashDon').textContent     = donationTotal + ' €';
+  qs('#adminDashboardOverlay').style.display='flex';
+}
+function closeAdminDashboard(){ qs('#adminDashboardOverlay').style.display='none'; }
+
+// Button-Listener NACH dem DOM-Load:
+window.addEventListener('DOMContentLoaded',()=>{
+  qs('#adminDashBtn').onclick=openAdminDashboard;
+});
+
+/* ---------- PRODUCT HELPERS (cart quantity) --------------- */
+function addToCart(item){
+  const idx=cartItems.findIndex(p=>p.name===item.name&&p.price===item.price);
+  if(idx>-1) cartItems[idx].qty+=1;
+  else cartItems.push({...item,qty:1});
+  saveCart();shootConfetti();
+}
+function changeQty(index,delta){
+  cartItems[index].qty+=delta;
+  if(cartItems[index].qty<=0) cartItems.splice(index,1);
+  saveCart();
+}
+
+/* ---------- RENDER PRODUCT GRIDS -------------------------- */
+function makeCard(p,i,admin,grid,removeFn){
+  const card=document.createElement('div');card.className='product-card show';
+  card.innerHTML=
+  `<img src="${p.img}">
+   <div class="product-info">
+     <div class="product-name">${p.name}</div>
+     <div class="product-price" style="color:${accentColor}">${p.price} €</div>
+   </div>`;
+  if(admin){
+    const wrap=document.createElement('div');wrap.className='admin-actions';
+    const del=document.createElement('button');del.textContent='Entfernen';
+    del.onclick=()=>{removeFn(i)};
+    wrap.appendChild(del);card.appendChild(wrap);
+  }else{
+    const buy=document.createElement('div');buy.className='buy-actions';
+    const add=document.createElement('button');add.className='buy-btn';add.textContent='➕ In den Wagen';
+    add.onclick=()=>addToCart(p);
+    buy.appendChild(add);card.appendChild(buy);
+  }
+  grid.appendChild(card);
+}
+
+/* ---------- SHOP ------------------------------------------ */
+function renderProducts(){
+  const grid=qs('#productGrid');if(!grid)return;
+  const term=qs('#searchInput').value?.toLowerCase()||'';
+  grid.innerHTML='';
+  products.filter(p=>p.name.toLowerCase().includes(term))
+          .forEach((p,i)=>makeCard(p,i,isAdmin,grid,idx=>{products.splice(idx,1);localStorage.setItem('products',JSON.stringify(products));renderProducts();}));
+}
+function addProduct(){
+  const name=qs('#productName').value.trim(),price=+qs('#productPrice').value,file=qs('#productImage').files[0];
+  if(name&&price>0&&file){
+    const r=new FileReader();r.onload=()=>{products.push({name,price,img:r.result});localStorage.setItem('products',JSON.stringify(products));renderProducts();};
+    r.readAsDataURL(file);
+  }
+}
+const openShop=()=>qs('#shopPage').classList.add('active');
+const closeShop=()=>qs('#shopPage').classList.remove('active');
+
+/* ---------- KIOSK ----------------------------------------- */
+function renderKioskProducts(){
+  const grid=qs('#kioskGrid');if(!grid)return;
+  const term=qs('#kioskSearchInput').value?.toLowerCase()||'';
+  grid.innerHTML='';
+  kioskProducts.filter(p=>p.name.toLowerCase().includes(term))
+               .forEach((p,i)=>makeCard(p,i,isAdmin,grid,idx=>{kioskProducts.splice(idx,1);localStorage.setItem('kioskProducts',JSON.stringify(kioskProducts));renderKioskProducts();}));
+}
+function addKioskProduct(){
+  const name=qs('#kioskName').value.trim(),price=+qs('#kioskPrice').value,file=qs('#kioskImage').files[0];
+  if(name&&price>0&&file){
+    const r=new FileReader();r.onload=()=>{kioskProducts.push({name,price,img:r.result});localStorage.setItem('kioskProducts',JSON.stringify(kioskProducts));renderKioskProducts();};
+    r.readAsDataURL(file);
+  }
+}
+const openKiosk=()=>qs('#kioskPage').classList.add('active');
+const closeKiosk=()=>qs('#kioskPage').classList.remove('active');
+
+/* ---------- CART ------------------------------------------ */
+function updateCart(){qs('#cartCount').textContent=cartItems.reduce((s,p)=>s+p.qty,0);}
+function saveCart(){localStorage.setItem('cart',JSON.stringify(cartItems));updateCart();renderCart();}
+function renderCart(){
+  const grid=qs('#cartGrid');if(!grid)return;
+  grid.innerHTML='';let total=0;
+  cartItems.forEach((p,i)=>{
+    total+=p.price*p.qty;
+    const card=document.createElement('div');card.className='product-card show';
+    card.innerHTML=
+    `<img src="${p.img}">
+     <div class="product-info">
+       <div class="product-name">${p.name}</div>
+       <div class="product-price" style="color:${accentColor}">${(p.price*p.qty).toFixed(2)} €  <small style="font-weight:400">(${p.qty}×${p.price})</small></div>
+     </div>`;
+    const wrap=document.createElement('div');wrap.className='admin-actions';
+      const minus=document.createElement('button');minus.textContent='-';minus.className='qty-btn';minus.onclick=()=>changeQty(i,-1);
+      const plus =document.createElement('button');plus .textContent='+';plus .className='qty-btn';plus .onclick=()=>changeQty(i,+1);
+    wrap.append(minus,plus);card.appendChild(wrap);grid.appendChild(card);
+  });
+  qs('#cartSummary').innerHTML=
+   `Summe: ${total.toFixed(2)} €<br><button id="clearCartBtn" style="margin-top:.6rem">Wagen leeren</button>`;
+  qs('#clearCartBtn').onclick=()=>{cartItems=[];saveCart();};
+}
+const openCart =()=>{qs('#cartPage').classList.add('active');renderCart();}
+const closeCart=()=>qs('#cartPage').classList.remove('active');
+
+/* ---------- NEWS / SPENDEN / ETC --------------------------- */
+function renderNews(){
+  const list=qs('#newsList');list.innerHTML='';
+  newsItems.forEach((n,i)=>{const item=document.createElement('div');item.className='news-item';item.textContent=n;
+    if(isAdmin){const d=document.createElement('button');d.textContent='✖';d.className='delete-btn';d.onclick=()=>{newsItems.splice(i,1);localStorage.setItem('news',JSON.stringify(newsItems));renderNews();};item.appendChild(d);}
+    list.appendChild(item);
+  });
+}
+const addNews=()=>{const t=qs('#newsInput').value.trim();if(t){newsItems.push(t);localStorage.setItem('news',JSON.stringify(newsItems));qs('#newsInput').value='';renderNews();}};
+const syncDonation=()=>{localStorage.setItem('donationTotal',donationTotal);qs('#donationAmount').textContent=donationTotal+' €';};
+const acceptCookies=()=>{localStorage.setItem('cookiesAccepted','yes');qs('#cookieBanner').style.display='none';};
+
+/* ---------- CONFETTI --------------------------------------- */
+function shootConfetti(){
+  for(let i=0;i<18;i++){
+    const el=document.createElement('div');el.textContent='🎉';
+    el.style.position='fixed';el.style.left=Math.random()*100+'vw';el.style.top='-1.8rem';el.style.zIndex=2000;
+    el.style.transition='transform 1.1s ease,opacity 1.1s';
+    document.body.appendChild(el);
+    setTimeout(()=>{el.style.transform=`translateY(${window.innerHeight+50}px) rotate(${Math.random()*360}deg)`;el.style.opacity=0;},20);
+    setTimeout(()=>el.remove(),1200);
+  }
+}
+
+/* ---------- EVENT BINDING ---------------------------------- */
+window.addEventListener('DOMContentLoaded',()=>{
+  qs('#plusBtn').onclick =()=>{if(isAdmin){donationTotal++;syncDonation();}};
+  qs('#minusBtn').onclick=()=>{if(isAdmin&&donationTotal>0){donationTotal--;syncDonation();}};
+  qs('#openShopBtn').onclick=openShop;   qs('#closeShopBtn').onclick=closeShop;
+  qs('#searchInput' ).oninput=renderProducts;qs('#addProductBtn').onclick=addProduct;
+  qs('#openKioskBtn').onclick=openKiosk; qs('#closeKioskBtn').onclick=closeKiosk;
+  qs('#kioskSearchInput').oninput=renderKioskProducts;qs('#addKioskBtn').onclick=addKioskProduct;
+  qs('#cartBtn').onclick=openCart; qs('#closeCartBtn').onclick=closeCart;
+  qs('#newsPostBtn').onclick=addNews; qs('#cookieOkBtn').onclick=acceptCookies;
+  window.addEventListener('scroll',()=>qs('#toTop').style.display=window.scrollY>300?'flex':'none');
+  qs('#toTop').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+  updateCart(); if(!localStorage.getItem('cookiesAccepted')) qs('#cookieBanner').style.display='flex';
+});
+
+/* ---------- DARK-MODE -------------------------------------- */
+const prefersDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+if(localStorage.getItem('theme')==='dark'||(!localStorage.getItem('theme')&&prefersDark))document.body.classList.add('dark');
+qs('#themeToggle').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');};
+</script>
+<!-- HTML-NEU: Admin-Dashboard-Overlay -->
+<div id="adminDashboardOverlay">
+  <div class="panel">
+  <button class="close-btn" onclick="closeAdminDashboard()">✖</button>
+  <h2>Admin-Dashboard</h2>
+  <p>Produkte im Shop: <strong id="dashProducts">0</strong></p>
+  <p>Kiosk-Produkte: <strong id="dashKiosk">0</strong></p>
+  <p>Warenkorb-Inhalte: <strong id="dashCart">0</strong></p>
+  <p>Gesammelte Spenden: <strong id="dashDon">0 €</strong></p>
+</div>
+  </div>
+</body>
+</html>

@@ -72,13 +72,13 @@ body.dark #shopPage,body.dark #kioskPage,body.dark #cartPage{background:#1e1e1e;
 body.dark button{background:#333;color:#e0e0e0}
 body.dark button:hover{background:#555}
 
-/* Loader Typing + Pulse  (unverändert) */
+/* Loader Typing + Pulse  */
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
 @keyframes typing{from{width:0}to{width:14ch}}@keyframes blink{0%,100%{border-color:transparent}50%{border-color:#fff}}
 #loader h1{animation:pulse 5s infinite}
 #loader h1.typing{overflow:hidden;white-space:nowrap;border-right:3px solid #fff;width:0;animation:typing 1.8s steps(15,end) forwards,blink .8s step-end infinite}
 
-/* --- CSS-NEU: Admin-Overlay -------------------------------- */
+/* --- Admin-Overlay ----------------------------------------- */
 #adminDashBtn{position:absolute;left:1rem;top:.6rem;font-size:1.4rem;background:none;border:none;color:#fff;cursor:pointer}
 #adminDashboardOverlay{
   position:fixed;inset:0;display:none;z-index:1200;
@@ -94,7 +94,7 @@ body.dark button:hover{background:#555}
 <body>
 <div id="loader"><h1 class="typing">Mannlich&nbsp;GmbH</h1><p>Wir starten für euch …</p></div>
 
-<!-- Login  -->
+<!-- Login -->
 <div id="nameInputSection" class="active fade">
   <h1>Willkommen!</h1><p>Bitte gib deinen Namen ein:</p>
   <input id="username" placeholder="Dein Name"><button onclick="enterSite()">Weiter</button>
@@ -110,7 +110,7 @@ body.dark button:hover{background:#555}
   <button id="themeToggle" title="Dark / Light" style="position:absolute;right:1rem;top:.6rem">🌙/☀</button>
   <input type="color" id="accentPicker" title="Hauptfarbe wählen" value="#007bff">
   <button id="cartBtn" title="Warenkorb">🛒<span id="cartCount">0</span></button>
-<button id="adminDashBtn" title="Admin-Dashboard" style="display:none">⚙️</button>
+  <button id="adminDashBtn" title="Admin-Dashboard" style="display:none">⚙️</button>
 </header>
 
 <!-- Main -->
@@ -143,8 +143,12 @@ body.dark button:hover{background:#555}
 <div id="shopPage" class="fade">
   <div id="shopHeader"><button id="closeShopBtn">← Zurück</button><input id="searchInput" placeholder="Produkte durchsuchen"></div>
   <div id="productGrid"></div>
-  <div id="addProductForm">
-    <input id="productName" placeholder="Produktname"><input id="productPrice" type="number" placeholder="Preis (€)"><input id="productImage" type="file" accept="image/*"><button id="addProductBtn">Hinzufügen</button>
+  <!-- Formular ist standardmäßig versteckt -->
+  <div id="addProductForm" style="display:none;flex-direction:column;gap:.5rem">
+    <input id="productName" placeholder="Produktname">
+    <input id="productPrice" type="number" placeholder="Preis (€)">
+    <input id="productImage" type="file" accept="image/*">
+    <button id="addProductBtn">Hinzufügen</button>
   </div>
 </div>
 
@@ -152,8 +156,12 @@ body.dark button:hover{background:#555}
 <div id="kioskPage" class="fade">
   <div id="kioskHeader"><button id="closeKioskBtn">← Zurück</button><input id="kioskSearchInput" placeholder="Produkte durchsuchen"></div>
   <div id="kioskGrid"></div>
-  <div id="addKioskForm">
-    <input id="kioskName" placeholder="Produktname"><input id="kioskPrice" type="number" placeholder="Preis (€)"><input id="kioskImage" type="file" accept="image/*"><button id="addKioskBtn">Hinzufügen</button>
+  <!-- Formular ist standardmäßig versteckt -->
+  <div id="addKioskForm" style="display:none;flex-direction:column;gap:.5rem">
+    <input id="kioskName" placeholder="Produktname">
+    <input id="kioskPrice" type="number" placeholder="Preis (€)">
+    <input id="kioskImage" type="file" accept="image/*">
+    <button id="addKioskBtn">Hinzufügen</button>
   </div>
 </div>
 
@@ -196,34 +204,48 @@ qs('#accentPicker').addEventListener('input',e=>setAccent(e.target.value));
 /* ---------- LOGIN ----------------------------------------- */
 function enterSite(){
   const name=qs('#username').value.trim();
-  if(!name)return alert('Bitte gib deinen Namen ein');
-  name.toLowerCase().includes('admin')?(qs('#nameInputSection').classList.remove('active'),qs('#adminPinSection').classList.add('active'))
-                                        :startSite(false);
+  if(!name){alert('Bitte gib deinen Namen ein');return;}
+  if(name.toLowerCase().includes('admin')){
+    qs('#nameInputSection').classList.remove('active');
+    qs('#adminPinSection').classList.add('active');
+  }else{
+    startSite(false);
+  }
 }
-function verifyAdminPin(){qs('#adminPin').value.trim()==='35497'?startSite(true):alert('Falscher PIN!');}
+function verifyAdminPin(){
+  qs('#adminPin').value.trim()==='35497'?startSite(true):alert('Falscher PIN!');
+}
 
 /* ---------- START SITE ------------------------------------ */
 function startSite(admin){
   isAdmin=admin;
-  if (isAdmin) qs('#adminDashBtn').style.display = 'inline-block';
+  if(isAdmin) qs('#adminDashBtn').style.display='inline-block';
+
   qs('#nameInputSection').classList.remove('active');
   qs('#adminPinSection').classList.remove('active');
   qs('#loader').classList.add('active');
+
   setTimeout(()=>{
     qs('#loader').classList.remove('active');
     document.querySelector('header').classList.add('active');
     document.querySelector('main').classList.add('active');
-    document.querySelectorAll('.section').forEach((sec,i)=>setTimeout(()=>sec.classList.add('show'),i*280));
+    document.querySelectorAll('.section').forEach((sec,i)=>
+      setTimeout(()=>sec.classList.add('show'),i*280));
+
+    /* Admin-spezifische Elemente zeigen */
     if(isAdmin){
       qs('#donationBtns').style.display='flex';
       qs('#adminNewsInput').style.display='flex';
       qs('#addProductForm').style.display='flex';
       qs('#addKioskForm').style.display='flex';
     }
-    syncDonation();renderNews();renderProducts();renderKioskProducts();renderCart();updateCart();
+
+    syncDonation();renderNews();renderProducts();renderKioskProducts();
+    renderCart();updateCart();
   },2400);
 }
-// JS-NEU: Funktionen + Listener
+
+/* ---------- Admin-Dashboard ------------------------------- */
 function openAdminDashboard(){
   if(!isAdmin) return;
   qs('#dashProducts').textContent = products.length;
@@ -232,14 +254,9 @@ function openAdminDashboard(){
   qs('#dashDon').textContent     = donationTotal + ' €';
   qs('#adminDashboardOverlay').style.display='flex';
 }
-function closeAdminDashboard(){ qs('#adminDashboardOverlay').style.display='none'; }
+function closeAdminDashboard(){qs('#adminDashboardOverlay').style.display='none';}
 
-// Button-Listener NACH dem DOM-Load:
-window.addEventListener('DOMContentLoaded',()=>{
-  qs('#adminDashBtn').onclick=openAdminDashboard;
-});
-
-/* ---------- PRODUCT HELPERS (cart quantity) --------------- */
+/* ---------- PRODUCT HELPERS ------------------------------- */
 function addToCart(item){
   const idx=cartItems.findIndex(p=>p.name===item.name&&p.price===item.price);
   if(idx>-1) cartItems[idx].qty+=1;
@@ -256,11 +273,11 @@ function changeQty(index,delta){
 function makeCard(p,i,admin,grid,removeFn){
   const card=document.createElement('div');card.className='product-card show';
   card.innerHTML=
-  `<img src="${p.img}">
-   <div class="product-info">
-     <div class="product-name">${p.name}</div>
-     <div class="product-price" style="color:${accentColor}">${p.price} €</div>
-   </div>`;
+    `<img src="${p.img}">
+     <div class="product-info">
+       <div class="product-name">${p.name}</div>
+       <div class="product-price" style="color:${accentColor}">${p.price} €</div>
+     </div>`;
   if(admin){
     const wrap=document.createElement('div');wrap.className='admin-actions';
     const del=document.createElement('button');del.textContent='Entfernen';
@@ -278,37 +295,57 @@ function makeCard(p,i,admin,grid,removeFn){
 /* ---------- SHOP ------------------------------------------ */
 function renderProducts(){
   const grid=qs('#productGrid');if(!grid)return;
-  const term=qs('#searchInput').value?.toLowerCase()||'';
+  const term=qs('#searchInput')?.value.toLowerCase()||'';
   grid.innerHTML='';
   products.filter(p=>p.name.toLowerCase().includes(term))
-          .forEach((p,i)=>makeCard(p,i,isAdmin,grid,idx=>{products.splice(idx,1);localStorage.setItem('products',JSON.stringify(products));renderProducts();}));
+          .forEach((p,i)=>makeCard(p,i,isAdmin,grid,idx=>{
+            products.splice(idx,1);
+            localStorage.setItem('products',JSON.stringify(products));
+            renderProducts();
+          }));
 }
 function addProduct(){
-  const name=qs('#productName').value.trim(),price=+qs('#productPrice').value,file=qs('#productImage').files[0];
+  if(!isAdmin){alert('Nur Admins dürfen Produkte anlegen.');return;}           // Schutz
+  const name=qs('#productName').value.trim(),
+        price=+qs('#productPrice').value,
+        file =qs('#productImage').files[0];
   if(name&&price>0&&file){
-    const r=new FileReader();r.onload=()=>{products.push({name,price,img:r.result});localStorage.setItem('products',JSON.stringify(products));renderProducts();};
+    const r=new FileReader();
+    r.onload=()=>{products.push({name,price,img:r.result});
+                 localStorage.setItem('products',JSON.stringify(products));
+                 renderProducts();};
     r.readAsDataURL(file);
   }
 }
-const openShop=()=>qs('#shopPage').classList.add('active');
+const openShop =()=>qs('#shopPage').classList.add('active');
 const closeShop=()=>qs('#shopPage').classList.remove('active');
 
 /* ---------- KIOSK ----------------------------------------- */
 function renderKioskProducts(){
   const grid=qs('#kioskGrid');if(!grid)return;
-  const term=qs('#kioskSearchInput').value?.toLowerCase()||'';
+  const term=qs('#kioskSearchInput')?.value.toLowerCase()||'';
   grid.innerHTML='';
   kioskProducts.filter(p=>p.name.toLowerCase().includes(term))
-               .forEach((p,i)=>makeCard(p,i,isAdmin,grid,idx=>{kioskProducts.splice(idx,1);localStorage.setItem('kioskProducts',JSON.stringify(kioskProducts));renderKioskProducts();}));
+               .forEach((p,i)=>makeCard(p,i,isAdmin,grid,idx=>{
+                 kioskProducts.splice(idx,1);
+                 localStorage.setItem('kioskProducts',JSON.stringify(kioskProducts));
+                 renderKioskProducts();
+               }));
 }
 function addKioskProduct(){
-  const name=qs('#kioskName').value.trim(),price=+qs('#kioskPrice').value,file=qs('#kioskImage').files[0];
+  if(!isAdmin){alert('Nur Admins dürfen Produkte anlegen.');return;}           // Schutz
+  const name=qs('#kioskName').value.trim(),
+        price=+qs('#kioskPrice').value,
+        file =qs('#kioskImage').files[0];
   if(name&&price>0&&file){
-    const r=new FileReader();r.onload=()=>{kioskProducts.push({name,price,img:r.result});localStorage.setItem('kioskProducts',JSON.stringify(kioskProducts));renderKioskProducts();};
+    const r=new FileReader();
+    r.onload=()=>{kioskProducts.push({name,price,img:r.result});
+                 localStorage.setItem('kioskProducts',JSON.stringify(kioskProducts));
+                 renderKioskProducts();};
     r.readAsDataURL(file);
   }
 }
-const openKiosk=()=>qs('#kioskPage').classList.add('active');
+const openKiosk =()=>qs('#kioskPage').classList.add('active');
 const closeKiosk=()=>qs('#kioskPage').classList.remove('active');
 
 /* ---------- CART ------------------------------------------ */
@@ -321,18 +358,20 @@ function renderCart(){
     total+=p.price*p.qty;
     const card=document.createElement('div');card.className='product-card show';
     card.innerHTML=
-    `<img src="${p.img}">
-     <div class="product-info">
-       <div class="product-name">${p.name}</div>
-       <div class="product-price" style="color:${accentColor}">${(p.price*p.qty).toFixed(2)} €  <small style="font-weight:400">(${p.qty}×${p.price})</small></div>
-     </div>`;
+      `<img src="${p.img}">
+       <div class="product-info">
+         <div class="product-name">${p.name}</div>
+         <div class="product-price" style="color:${accentColor}">
+           ${(p.price*p.qty).toFixed(2)} € <small style="font-weight:400">(${p.qty}×${p.price})</small>
+         </div>
+       </div>`;
     const wrap=document.createElement('div');wrap.className='admin-actions';
-      const minus=document.createElement('button');minus.textContent='-';minus.className='qty-btn';minus.onclick=()=>changeQty(i,-1);
-      const plus =document.createElement('button');plus .textContent='+';plus .className='qty-btn';plus .onclick=()=>changeQty(i,+1);
-    wrap.append(minus,plus);card.appendChild(wrap);grid.appendChild(card);
+    const minus=document.createElement('button');minus.textContent='-';minus.className='qty-btn';minus.onclick=()=>changeQty(i,-1);
+    const plus =document.createElement('button');plus .textContent='+';plus .className='qty-btn';plus .onclick=()=>changeQty(i,+1);
+    wrap.append(minus,plus);card.appendChild(wrap);
+    grid.appendChild(card);
   });
-  qs('#cartSummary').innerHTML=
-   `Summe: ${total.toFixed(2)} €<br><button id="clearCartBtn" style="margin-top:.6rem">Wagen leeren</button>`;
+  qs('#cartSummary').innerHTML=`Summe: ${total.toFixed(2)} €<br><button id="clearCartBtn" style="margin-top:.6rem">Wagen leeren</button>`;
   qs('#clearCartBtn').onclick=()=>{cartItems=[];saveCart();};
 }
 const openCart =()=>{qs('#cartPage').classList.add('active');renderCart();}
@@ -341,12 +380,18 @@ const closeCart=()=>qs('#cartPage').classList.remove('active');
 /* ---------- NEWS / SPENDEN / ETC --------------------------- */
 function renderNews(){
   const list=qs('#newsList');list.innerHTML='';
-  newsItems.forEach((n,i)=>{const item=document.createElement('div');item.className='news-item';item.textContent=n;
-    if(isAdmin){const d=document.createElement('button');d.textContent='✖';d.className='delete-btn';d.onclick=()=>{newsItems.splice(i,1);localStorage.setItem('news',JSON.stringify(newsItems));renderNews();};item.appendChild(d);}
+  newsItems.forEach((n,i)=>{
+    const item=document.createElement('div');item.className='news-item';item.textContent=n;
+    if(isAdmin){
+      const d=document.createElement('button');d.textContent='✖';d.className='delete-btn';
+      d.onclick=()=>{newsItems.splice(i,1);localStorage.setItem('news',JSON.stringify(newsItems));renderNews();};
+      item.appendChild(d);
+    }
     list.appendChild(item);
   });
 }
-const addNews=()=>{const t=qs('#newsInput').value.trim();if(t){newsItems.push(t);localStorage.setItem('news',JSON.stringify(newsItems));qs('#newsInput').value='';renderNews();}};
+const addNews=()=>{const t=qs('#newsInput').value.trim();
+  if(t){newsItems.push(t);localStorage.setItem('news',JSON.stringify(newsItems));qs('#newsInput').value='';renderNews();}};
 const syncDonation=()=>{localStorage.setItem('donationTotal',donationTotal);qs('#donationAmount').textContent=donationTotal+' €';};
 const acceptCookies=()=>{localStorage.setItem('cookiesAccepted','yes');qs('#cookieBanner').style.display='none';};
 
@@ -364,14 +409,15 @@ function shootConfetti(){
 
 /* ---------- EVENT BINDING ---------------------------------- */
 window.addEventListener('DOMContentLoaded',()=>{
-  qs('#plusBtn').onclick =()=>{if(isAdmin){donationTotal++;syncDonation();}};
-  qs('#minusBtn').onclick=()=>{if(isAdmin&&donationTotal>0){donationTotal--;syncDonation();}};
-  qs('#openShopBtn').onclick=openShop;   qs('#closeShopBtn').onclick=closeShop;
-  qs('#searchInput' ).oninput=renderProducts;qs('#addProductBtn').onclick=addProduct;
-  qs('#openKioskBtn').onclick=openKiosk; qs('#closeKioskBtn').onclick=closeKiosk;
-  qs('#kioskSearchInput').oninput=renderKioskProducts;qs('#addKioskBtn').onclick=addKioskProduct;
-  qs('#cartBtn').onclick=openCart; qs('#closeCartBtn').onclick=closeCart;
-  qs('#newsPostBtn').onclick=addNews; qs('#cookieOkBtn').onclick=acceptCookies;
+  qs('#adminDashBtn').onclick           = openAdminDashboard;
+  qs('#plusBtn').onclick                = ()=>{if(isAdmin){donationTotal++;syncDonation();}};
+  qs('#minusBtn').onclick               = ()=>{if(isAdmin&&donationTotal>0){donationTotal--;syncDonation();}};
+  qs('#openShopBtn').onclick            = openShop;   qs('#closeShopBtn').onclick=closeShop;
+  qs('#searchInput')?.addEventListener('input',renderProducts);  qs('#addProductBtn').onclick  = addProduct;
+  qs('#openKioskBtn').onclick           = openKiosk;  qs('#closeKioskBtn').onclick=closeKiosk;
+  qs('#kioskSearchInput')?.addEventListener('input',renderKioskProducts); qs('#addKioskBtn').onclick = addKioskProduct;
+  qs('#cartBtn').onclick               = openCart;   qs('#closeCartBtn').onclick=closeCart;
+  qs('#newsPostBtn').onclick           = addNews;    qs('#cookieOkBtn').onclick = acceptCookies;
   window.addEventListener('scroll',()=>qs('#toTop').style.display=window.scrollY>300?'flex':'none');
   qs('#toTop').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
   updateCart(); if(!localStorage.getItem('cookiesAccepted')) qs('#cookieBanner').style.display='flex';
@@ -380,18 +426,20 @@ window.addEventListener('DOMContentLoaded',()=>{
 /* ---------- DARK-MODE -------------------------------------- */
 const prefersDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
 if(localStorage.getItem('theme')==='dark'||(!localStorage.getItem('theme')&&prefersDark))document.body.classList.add('dark');
-qs('#themeToggle').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');};
+qs('#themeToggle').onclick = ()=>{document.body.classList.toggle('dark');
+  localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');};
 </script>
-<!-- HTML-NEU: Admin-Dashboard-Overlay -->
+
+<!-- Admin-Dashboard-Overlay -->
 <div id="adminDashboardOverlay">
   <div class="panel">
-  <button class="close-btn" onclick="closeAdminDashboard()">✖</button>
-  <h2>Admin-Dashboard</h2>
-  <p>Produkte im Shop: <strong id="dashProducts">0</strong></p>
-  <p>Kiosk-Produkte: <strong id="dashKiosk">0</strong></p>
-  <p>Warenkorb-Inhalte: <strong id="dashCart">0</strong></p>
-  <p>Gesammelte Spenden: <strong id="dashDon">0 €</strong></p>
-</div>
+    <button class="close-btn" onclick="closeAdminDashboard()">✖</button>
+    <h2>Admin-Dashboard</h2>
+    <p>Produkte im Shop: <strong id="dashProducts">0</strong></p>
+    <p>Kiosk-Produkte:   <strong id="dashKiosk">0</strong></p>
+    <p>Warenkorb-Inhalte:<strong id="dashCart">0</strong></p>
+    <p>Gesammelte Spenden:<strong id="dashDon">0 €</strong></p>
   </div>
+</div>
 </body>
 </html>
